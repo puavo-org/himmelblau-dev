@@ -47,8 +47,6 @@ usermod -aG sudo "$HOST_USER"
 usermod -s /bin/bash "$HOST_USER"
 echo "$HOST_USER:$HOST_PASSWORD" | chpasswd
 
-chage -d 0 "$HOST_USER"
-
 passwd -d root
 passwd -l root
 
@@ -95,8 +93,8 @@ for PKG in $PACKAGES; do
   curl --fail -L -o "$DEB_DIR/$FILENAME" "$URL"
 done
 
-apt-get update
-apt-get install -y "$DEB_DIR"/*.deb
+apt-get -o APT::Sandbox::User=root update
+apt-get -o APT::Sandbox::User=root install  -y "$DEB_DIR"/*.deb
 
 rm -rf "$DEB_DIR"
 
