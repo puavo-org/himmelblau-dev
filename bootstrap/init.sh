@@ -16,8 +16,9 @@ for cmd in curl qemu-img parted mkfs.fat mkfs.ext4 debootstrap getopt jq; do
   fi
 done
 
-HIMMELBLAU_UPDATE=false
-CONFIG_FILE=""
+ARG_CONFIG=""
+ARG_UPDATE=0
+
 if ! opts=$(getopt -o uc: --long update,config: -n "$(basename "$0")" -- "$@"); then
   echo "Invalid options" >&2
   exit 1
@@ -25,13 +26,13 @@ fi
 eval set -- "$opts"
 while true; do
   case "$1" in
-  -u | --update)
-    HIMMELBLAU_UPDATE=true
-    shift
-    ;;
   -c | --config)
-    CONFIG_FILE="$2"
+    ARG_CONFIG="$2"
     shift 2
+    ;;
+  -u | --update)
+    ARG_UPDATE=1
+    shift
     ;;
   --)
     shift
@@ -45,16 +46,16 @@ if [ $# -ne 1 ]; then
   exit 1
 fi
 
-OUTPUT=$1
-mkdir -p "$OUTPUT"
+BUILD_DIR=$1
+mkdir -p "$BUILD_DIR"
 
-HIMMELBLAU_CONF="$OUTPUT/himmelblau.conf"
-IMAGE="$OUTPUT/himmelblau-demo.qcow2"
+BUILD_HIMMELBLAU_CONF="$BUILD_DIR/himmelblau.conf"
+BUILD_IMAGE_PATH="$BUILD_DIR/himmelblau-demo.qcow2"
 
-settings_load "$CONFIG_FILE"
+settings_load "$ARG_CONFIG"
 settings_check
 
-if [ "$HIMMELBLAU_UPDATE" = "true" ]; then
+if [ "$ARG_UPDATE" -eq 1 ]; then
   url="https://api.github.com/repos/himmelblau-idm/himmelblau/releases/latest"
   version=$(curl -sSf "$url" | jq -r '.tag_name')
 
@@ -73,24 +74,24 @@ teardown() {
 
 trap teardown EXIT INT TERM
 
-if [ ! -d "$OUTPUT" ]; then
-  echo "\"$OUTPUT\" is not a directory" >&2
+if [ ! -d "$BUILD_DIR" ]; then
+  echo "\"$BUILD_DIR\" is not a directory" >&2
   exit 1
 fi
 
-settings_generate "$HIMMELBLAU_CONF"
+settings_generate "$BUILD_HIMMELBLAU_CONF"
 
 if [ ! -f "$OVMF_CODE_SRC" ] || [ ! -f "$OVMF_VARS_SRC" ]; then
   echo "OVMF firmware files not found." >&2
   exit 1
 fi
 
-cp "$OVMF_CODE_SRC" "$OUTPUT/OVMF_CODE.fd"
-cp "$OVMF_VARS_SRC" "$OUTPUT/OVMF_VARS.fd.template"
+cp "$OVMF_CODE_SRC" "$BUILD_DIR/OVMF_CODE.fd"
+cp "$OVMF_VARS_SRC" "$BUILD_DIR/OVMF_VARS.fd.template"
 
-qemu-img create -f qcow2 "$IMAGE" 50G
+qemu-img create -f qcow2 "$BUILD_IMAGE_PATH" 50G
 
-sudo qemu-nbd -c /dev/nbd0 "$IMAGE"
+sudo qemu-nbd -c /dev/nbd0 "$BUILD_IMAGE_PATH"
 
 sudo parted -s -a optimal -- /dev/nbd0 \
   mklabel gpt \

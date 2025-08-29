@@ -11,9 +11,8 @@ for cmd in getopt curl virt-fw-vars swtpm jq; do
   fi
 done
 
-DEFAULT_CONFIG_FILE="qemu.json"
-CONFIG_FILE=""
-NETWORK_MODE="user"
+ARG_CONFIG="qemu.json"
+ARG_BRIDGE=0
 
 opts=$(getopt -o bc: --long bridge,config: -n "$(basename "$0")" -- "$@")
 if [ $? -ne 0 ]; then
@@ -24,11 +23,11 @@ eval set -- "$opts"
 while true; do
   case "$1" in
     -b | --bridge)
-      NETWORK_MODE="bridge"
+      ARG_BRIDGE=1
       shift
       ;;
     -c | --config)
-      CONFIG_FILE="$2"
+      ARG_CONFIG="$2"
       shift 2
       ;;
     --)
@@ -38,29 +37,32 @@ while true; do
   esac
 done
 
+if [ "$ARG_BRIDGE" -eq 1 ]; then
+  NETWORK="bridge"
+else
+  NETWORK="user"
+fi
+echo "vm: network=$NETWORK"
+
 if [ $# -ne 1 ]; then
   echo "Usage: $(basename "$0") [-b|--bridge] [--config <file>] <output_dir>" >&2
   exit 1
 fi
 
-OUTPUT=$1
+BUILD_DIR=$1
 
-if [ -z "$CONFIG_FILE" ]; then
-  CONFIG_FILE="$DEFAULT_CONFIG_FILE"
-fi
-
-if [ ! -f "$CONFIG_FILE" ]; then
-  echo "'$CONFIG_FILE' not found" >&2
+if [ ! -f "$ARG_CONFIG" ]; then
+  echo "'$ARG_CONFIG' not found" >&2
   exit 1
 fi
 
-if [ ! -d "$OUTPUT" ]; then
-  echo "'$OUTPUT' not found" >&2
+if [ ! -d "$BUILD_DIR" ]; then
+  echo "'$BUILD_DIR' not found" >&2
   exit 1
 fi
 
-OVMF_VARS_TEMPLATE="$OUTPUT/OVMF_VARS.fd.template"
-OVMF_VARS_INSTANCE="$OUTPUT/OVMF_VARS.fd"
+OVMF_VARS_TEMPLATE="$BUILD_DIR/OVMF_VARS.fd.template"
+OVMF_VARS_INSTANCE="$BUILD_DIR/OVMF_VARS.fd"
 
 if [ ! -f "$OVMF_VARS_TEMPLATE" ]; then
     echo "'$OVMF_VARS_TEMPLATE' not found" >&2
@@ -99,4 +101,4 @@ if [ -z "$swtpm_pid" ]; then
     exit 1
 fi
 
-"vm/qemu.sh" "$CONFIG_FILE" "$OUTPUT" "$NETWORK_MODE" "$swtpm_sock"
+"vm/qemu.sh" "$ARG_CONFIG" "$BUILD_DIR" "$NETWORK" "$swtpm_sock"

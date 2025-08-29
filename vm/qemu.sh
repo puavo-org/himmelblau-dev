@@ -10,7 +10,7 @@ if [ $# -ne 4 ]; then
 fi
 
 CONFIG_FILE="$1"
-OUTPUT_DIR="$2"
+BUILD_DIR="$2"
 NETWORK_MODE="$3"
 SWTPM_SOCK="$4"
 
@@ -65,7 +65,7 @@ $tpm_list
 EOF
 fi
 
-drive_list=$(jq -r --arg outdir "$OUTPUT_DIR" '
+drive_list=$(jq -r --arg outdir "$BUILD_DIR" '
   .drives[] |
   (
     to_entries |

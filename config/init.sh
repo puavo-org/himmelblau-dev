@@ -11,17 +11,17 @@ if [ $# -ne 1 ]; then
   exit 1
 fi
 
-OUTPUT=$1
+BUILD_DIR=$1
 
-HIMMELBLAU_CONF="$OUTPUT/himmelblau.conf"
-IMAGE="$OUTPUT/himmelblau-demo.qcow2"
+BUILD_HIMMELBLAU_CONF="$BUILD_DIR/himmelblau.conf"
+BUILD_IMAGE_PATH="$BUILD_DIR/himmelblau-demo.qcow2"
 
 if ! command -v guestfish >/dev/null 2>&1; then
   echo "'guestfish' not found" >&2
   exit 1
 fi
 
-guestfish -a "$IMAGE" <<EOF
+guestfish -a "$BUILD_IMAGE_PATH" <<EOF
 set-network true
 run
 
@@ -29,7 +29,7 @@ mount /dev/sda2 /
 mkdir /boot/efi
 mount /dev/sda1 /boot/efi
 
-copy-in "$HIMMELBLAU_CONF" /tmp
+copy-in "$BUILD_HIMMELBLAU_CONF" /tmp
 copy-in "config/debian.sh" /tmp
 copy-in "himmelblau.version" /tmp
 
