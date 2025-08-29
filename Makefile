@@ -4,21 +4,25 @@
 BUILD_DIR := build
 
 -include .env
-export TENANT_ID TENANT_DOMAIN
+export TENANT_ID TENANT_DOMAIN HSM_TYPE ENABLE_HELLO
 
 BUILD_FLAGS :=
-ifeq ($(UPDATE),true)
-  BUILD_FLAGS += --update
+
+ifeq ($(UPDATE),1)
+	BUILD_FLAGS += --update
+else ifneq ($(UPDATE),)
+	$(error "Use 'UPDATE=1'.")
 endif
 
-RUN_FLAGS :=
-ifeq ($(BRIDGE),true)
-  RUN_FLAGS += --bridge
+ifeq ($(BRIDGE),1)
+	RUN_FLAGS += --bridge
+else ifneq ($(BRIDGE),)
+	$(error "Use 'BRIDGE=1'.")
 endif
 
 .PHONY: all build-image bootstrap configure-vm run-vm clean help
 
-all: build-image
+all: build
 
 build: bootstrap configure-vm ## Build image. Use 'UPDATE=1' to update Himmelblau.
 
