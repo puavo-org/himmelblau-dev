@@ -13,12 +13,20 @@ export DEBIAN_FRONTEND=noninteractive
 
 systemctl mask gdm3.service
 
-echo "UUID=$(blkid -s UUID -o value /dev/sda1) /boot/efi vfat umask=0077 0 1" >/etc/fstab
-echo "UUID=$(blkid -s UUID -o value /dev/sda2) / ext4 errors=remount-ro 0 1" >>/etc/fstab
+# /etc/fstab
+{
+  echo "UUID=$(blkid -s UUID -o value /dev/sda1) /boot/efi vfat umask=0077 0 1"
+  echo "UUID=$(blkid -s UUID -o value /dev/sda2) / ext4 errors=remount-ro 0 1"
+} > /etc/fstab
 
+# /etc/hosts
+{
+  echo "127.0.0.1 localhost"
+  echo "127.0.1.1 himmelblau-demo"
+} > /etc/hosts
+
+# /etc/hostname
 echo "himmelblau-demo" >/etc/hostname
-echo "127.0.0.1 localhost" >/etc/hosts
-echo "127.0.1.1 himmelblau-demo" >>/etc/hosts
 
 debconf-set-selections <<EOF
 keyboard-configuration keyboard-configuration/layoutcode string en
