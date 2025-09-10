@@ -32,7 +32,7 @@ bootstrap:
 configure-vm:
 	./config/init.sh $(BUILD_DIR)
 
-run: ## Run image inside QEMU. Use 'BRIDGE=1' for bridged network.
+run: build ## Run image inside QEMU. Use 'BRIDGE=1' for bridged network.
 	./vm/init.sh $(RUN_FLAGS) $(BUILD_DIR)
 
 clean: ## Remove the build directory.
