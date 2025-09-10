@@ -113,7 +113,7 @@ sudo debootstrap \
   --include="apt-utils,console-setup,curl,iproute2,iputils-ping,jq,less,locales,lsb-release,sudo,systemd,systemd-sysv,tzdata,udhcpc,zstd,ca-certificates" \
   --components=main,contrib,non-free,non-free-firmware \
   --variant=minbase \
-  bookworm /mnt http://httpredir.debian.org/debian/
+  bookworm /mnt http://deb.debian.org/debian/
 
 sudo umount /mnt
 sudo qemu-nbd -d /dev/nbd0
