@@ -20,17 +20,17 @@ else ifneq ($(BRIDGE),)
 	$(error "Use 'BRIDGE=1'.")
 endif
 
-.PHONY: all build-image bootstrap configure-vm run-vm clean help
+.PHONY: all build-image bootstrap install run-vm clean help
 
 all: build
 
-build: bootstrap configure-vm ## Build image. Use 'UPDATE=1' to update Himmelblau.
+build: bootstrap install ## Build image. Use 'UPDATE=1' to update Himmelblau.
 
 bootstrap:
-	./bootstrap/init.sh $(BUILD_FLAGS) $(BUILD_DIR)
+	./bootstrap.sh $(BUILD_FLAGS) $(BUILD_DIR)
 
-configure-vm:
-	./config/init.sh $(BUILD_DIR)
+install:
+	./install.sh $(BUILD_DIR)
 
 run: build ## Run image inside QEMU. Use 'BRIDGE=1' for bridged network.
 	./vm/init.sh $(RUN_FLAGS) $(BUILD_DIR)
@@ -40,4 +40,4 @@ clean: ## Remove the build directory.
 	@-rm -rf $(BUILD_DIR)
 
 help: ## Show the help message.
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'

@@ -13,7 +13,6 @@ fi
 
 BUILD_DIR=$1
 
-BUILD_HIMMELBLAU_CONF="$BUILD_DIR/himmelblau.conf"
 BUILD_IMAGE_PATH="$BUILD_DIR/himmelblau-demo.qcow2"
 
 if ! command -v guestfish >/dev/null 2>&1; then
@@ -29,13 +28,13 @@ mount /dev/sda2 /
 mkdir /boot/efi
 mount /dev/sda1 /boot/efi
 
-copy-in "$BUILD_HIMMELBLAU_CONF" /tmp
-copy-in "config/debian.sh" /tmp
+copy-in "$BUILD_DIR/himmelblau.conf" /tmp
+copy-in "install-debian.sh" /tmp
 copy-in "himmelblau.version" /tmp
 
-chmod 0700 /tmp/debian.sh
+chmod 0700 /tmp/install-debian.sh
 
-sh "/tmp/debian.sh"
+sh "/tmp/install-debian.sh"
 
 umount /boot/efi
 umount /

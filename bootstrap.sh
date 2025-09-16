@@ -4,10 +4,22 @@
 
 set -eu
 
+REQUIRED=(
+  "ENABLE_HELLO"
+  "HSM_TYPE"
+  "TENANT_DOMAIN"
+  "TENANT_ID"
+)
+
+for var in "${REQUIRED[@]}"; do
+  if [[ -z "${!var}" ]]; then
+    echo "'$var' is not defined" >&2
+    exit 1
+  fi
+done
+
 OVMF_CODE_SRC="/usr/share/OVMF/OVMF_CODE.fd"
 OVMF_VARS_SRC="/usr/share/OVMF/OVMF_VARS.fd"
-
-source "bootstrap/settings.sh"
 
 for cmd in curl qemu-img parted mkfs.fat mkfs.ext4 debootstrap getopt jq; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -16,7 +28,6 @@ for cmd in curl qemu-img parted mkfs.fat mkfs.ext4 debootstrap getopt jq; do
   fi
 done
 
-ARG_CONFIG=""
 ARG_UPDATE=0
 
 if ! opts=$(getopt -o uc: --long update,config: -n "$(basename "$0")" -- "$@"); then
@@ -26,10 +37,6 @@ fi
 eval set -- "$opts"
 while true; do
   case "$1" in
-  -c | --config)
-    ARG_CONFIG="$2"
-    shift 2
-    ;;
   -u | --update)
     ARG_UPDATE=1
     shift
@@ -49,11 +56,7 @@ fi
 BUILD_DIR=$1
 mkdir -p "$BUILD_DIR"
 
-BUILD_HIMMELBLAU_CONF="$BUILD_DIR/himmelblau.conf"
 BUILD_IMAGE_PATH="$BUILD_DIR/himmelblau-demo.qcow2"
-
-settings_load "$ARG_CONFIG"
-settings_check
 
 if [ "$ARG_UPDATE" -eq 1 ]; then
   url="https://api.github.com/repos/himmelblau-idm/himmelblau/releases/latest"
@@ -79,7 +82,13 @@ if [ ! -d "$BUILD_DIR" ]; then
   exit 1
 fi
 
-settings_generate "$BUILD_HIMMELBLAU_CONF"
+jq -n -r \
+  --arg domains "$TENANT_DOMAIN" \
+  --arg hsm_type "$HSM_TYPE" \
+  --argjson enable_hello "$ENABLE_HELLO" \
+  '
+    "[global]\ndebug = true\ndomains = \($domains)\nhome_alias = CN\nhome_attr = CN\nid_attr_map = name\npam_allow_groups =\nuse_etc_skel = true\nlocal_groups = users\nhsm_type = \($hsm_type)\nenable_hello = \($enable_hello)"
+  ' > "$BUILD_DIR/himmelblau.conf"
 
 if [ ! -f "$OVMF_CODE_SRC" ] || [ ! -f "$OVMF_VARS_SRC" ]; then
   echo "OVMF firmware files not found." >&2
