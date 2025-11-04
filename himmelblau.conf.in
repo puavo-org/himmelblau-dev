@@ -1,0 +1,11 @@
+[global]
+debug = true
+domains = {{domains}}
+home_alias = CN
+home_attr = CN
+id_attr_map = name
+pam_allow_groups =
+use_etc_skel = true
+local_groups = users
+hsm_type = {{hsm_type}}
+enable_hello = {{enable_hello}}
