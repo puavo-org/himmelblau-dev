@@ -10,16 +10,19 @@ In order to list of all the available commands and their descriptions, run:
 
     make help
 
-> **Note**: The build process (`make build-image`) requires `sudo` privileges
-  for tasks like disk partitioning and bootstrapping Debian.
+> **Note**: The build process (`make build`) requires `sudo` privileges
+> for tasks like disk partitioning and bootstrapping Debian.
 
 1.  **Dependencies**
 
-    Install the required packages for building the VM image and running the
-    QEMU scripts.
+    Install the required packages for building the VM image and managing it
+    with libvirt.
 
     ```bash
-    sudo apt install make guestfish debootstrap qemu-utils ovmf swtpm-tools jq curl libguestfs-tools virt-viewer
+    sudo apt install \
+      make guestfish debootstrap qemu-utils ovmf swtpm-tools jq curl \
+      libguestfs-tools virt-viewer virtinst libvirt-daemon-system libvirt-clients \
+      python3
     ```
 
 2.  **Environment**
@@ -38,18 +41,34 @@ In order to list of all the available commands and their descriptions, run:
     make build
     ```
 
-4.  **Run the Virtual Machine**
+    This produces a QCOW2 disk image and UEFI firmware blobs in the `build/`
+    directory.
 
-    The run target starts the VM and automatically opens a SPICE viewer.
+4.  **Install libvirt domain**
+
+    Define or update a libvirt VM using the built image:
 
     ```bash
-    make run
+    make install
     ```
 
-    To use bridged networking instead of user-mode networking:
+    This will generate `build/himmelblau-demo.xml` and define a libvirt
+    domain named `himmelblau-demo` with SPICE graphics, virtio GPU with GL,
+    and a vTPM backed by `swtpm`. SSH is forwarded from the host port
+    `10022` to the guest port `22` using libvirt's `passt` backend.
+
+5.  **Run the Virtual Machine**
+
+    Start the VM via `virsh` (or your preferred libvirt frontend):
 
     ```bash
-    make run BRIDGE=1
+    virsh start himmelblau-demo
+    ```
+
+    You can then connect using `virt-viewer`:
+
+    ```bash
+    virt-viewer --connect qemu:///system --wait himmelblau-demo
     ```
 
 # Himmelblau
