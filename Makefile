@@ -1,47 +1,55 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Copyright (c) Opinsys Oy 2025
+# Copyright (c) 2025 Opinsys Oy
 
 -include .env
 export TENANT_ID TENANT_DOMAIN HSM_TYPE ENABLE_HELLO
 
-.PHONY: all build bootstrap install run clean help
+DOCKER ?= docker
+
+.PHONY: all build bootstrap image install clean help
 .DEFAULT_GOAL := help
 
 all: build
 
-build/.stamp-bootstrap:
+build/himmelblau-demo.qcow2:
+	@mkdir -p build
+	@cp himmelblau.version build/
+	@set -eu; \
+	COMPOSE_CMD=""; \
+	if command -v "$(DOCKER)" >/dev/null 2>&1; then \
+		if "$(DOCKER)" compose version >/dev/null 2>&1; then \
+			COMPOSE_CMD="$(DOCKER) compose"; \
+		fi; \
+	fi; \
+	if [ -z "$$COMPOSE_CMD" ]; then \
+		if command -v "$(DOCKER)-compose" >/dev/null 2>&1; then \
+			COMPOSE_CMD="$(DOCKER)-compose"; \
+		fi; \
+	fi; \
+	if [ -z "$$COMPOSE_CMD" ]; then \
+		echo "No compose frontend found for '$(DOCKER)' (tried '$(DOCKER) compose' and '$(DOCKER)-compose')." >&2; \
+		exit 1; \
+	fi; \
+	$$COMPOSE_CMD run --rm himmelblau-demo-builder; \
+	if [ ! -f build/himmelblau-demo.qcow2 ]; then \
+		echo "Image was not created in build/." >&2; \
+		exit 1; \
+	fi
+
+build/.stamp-ovmf:
 	@mkdir -p build
 	./bootstrap.sh build
 	@touch $@
 
-build/.stamp-install: build/.stamp-bootstrap
-	./install.sh build
-	@touch $@
+bootstrap: build/.stamp-ovmf      ## Prepare OVMF firmware (auto-run by build).
+image: build/himmelblau-demo.qcow2 ## Build operating system image.
 
-bootstrap: build/.stamp-bootstrap ## Run bootstrap step (creates build/.stamp-bootstrap).
-install: build/.stamp-install     ## Run install step (creates build/.stamp-install).
-build: install                    ## Build operating system image (no-op if stamps are up-to-date).
+build: ## Build image and prepare firmware.
+	$(MAKE) image
+	$(MAKE) bootstrap
 
-run: build/.stamp-install ## Launch VM and open SPICE viewer (use BRIDGE=1 for bridged networking).
-	@command -v remote-viewer >/dev/null 2>&1 || { echo "'remote-viewer' not found (install 'virt-viewer')." >&2; exit 1; }
-	@set -eu; \
-	BRIDGE_FLAG=""; \
-	if [ "${BRIDGE:-0}" = "1" ]; then BRIDGE_FLAG="--bridge"; fi; \
-	vm/init.sh $$BRIDGE_FLAG --config qemu.json build & \
-	qemu_pid=$$!; \
-	echo $$qemu_pid > build/qemu.pid; \
-	for i in $$(seq 1 60); do \
-		if [ -S build/spice.sock ]; then \
-			break; \
-		fi; \
-		sleep 1; \
-	done; \
-	if [ ! -S build/spice.sock ]; then \
-		echo "SPICE socket not found at build/spice.sock (timeout)"; \
-		kill $$qemu_pid 2>/dev/null || true; \
-		exit 1; \
-	fi; \
-	remote-viewer spice+unix://build/spice.sock
+install: build ## Create or update libvirt domain using virt-install.
+	./virt-install.sh build
 
 clean: ## Remove the build directory.
 	@echo "Cleaning up build directory..."

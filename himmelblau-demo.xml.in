@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='utf-8'?>
+<domain xmlns:ns0="http://libosinfo.org/xmlns/libvirt/domain/1.0" type="kvm">
+  <name>himmelblau-demo</name>
+  <uuid>{{UUID}}</uuid>
+  <metadata>
+    <ns0:libosinfo>
+      <ns0:os id="http://debian.org/debian/12" />
+    </ns0:libosinfo>
+  </metadata>
+  <memory>4194304</memory>
+  <currentMemory>4194304</currentMemory>
+  <vcpu>2</vcpu>
+  <os>
+    <type arch="x86_64" machine="q35">hvm</type>
+    <loader readonly="yes" type="pflash">{{BUILD_DIR}}/OVMF_CODE.fd</loader>
+    <nvram>{{BUILD_DIR}}/OVMF_VARS.fd</nvram>
+    <boot dev="hd" />
+  </os>
+  <features>
+    <acpi />
+    <apic />
+    <vmport state="off" />
+  </features>
+  <cpu mode="host-passthrough" />
+  <clock offset="utc">
+    <timer name="rtc" tickpolicy="catchup" />
+    <timer name="pit" tickpolicy="delay" />
+    <timer name="hpet" present="no" />
+  </clock>
+  <pm>
+    <suspend-to-mem enabled="no" />
+    <suspend-to-disk enabled="no" />
+  </pm>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    <disk type="file" device="disk">
+      <driver name="qemu" type="qcow2" />
+      <source file="{{BUILD_DIR}}/himmelblau-demo.qcow2" />
+      <target dev="vda" bus="virtio" />
+    </disk>
+    <controller type="usb" model="qemu-xhci" ports="15" />
+    <controller type="pci" model="pcie-root" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <controller type="pci" model="pcie-root-port" />
+    <interface type="user">
+      <model type="virtio" />
+      <backend type="passt" />
+      <portForward proto="tcp">
+        <range start="10022" to="22" />
+      </portForward>
+    </interface>
+    <console type="pty" />
+    <channel type="unix">
+      <source mode="bind" />
+      <target type="virtio" name="org.qemu.guest_agent.0" />
+    </channel>
+    <channel type="spicevmc">
+      <target type="virtio" name="com.redhat.spice.0" />
+    </channel>
+    <input type="tablet" bus="usb" />
+    <tpm model="tpm-tis">
+      <backend type="emulator" version="2.0" />
+    </tpm>
+    <graphics type="spice">
+      <image compression="off" />
+      <listen type="none" />
+    </graphics>
+    <sound model="ich9" />
+    <video>
+      <model type="virtio" />
+    </video>
+    <redirdev bus="usb" type="spicevmc" />
+    <redirdev bus="usb" type="spicevmc" />
+    <memballoon model="virtio" />
+    <rng model="virtio">
+      <backend model="random">/dev/urandom</backend>
+    </rng>
+  </devices>
+</domain>

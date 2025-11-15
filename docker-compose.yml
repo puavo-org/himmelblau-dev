@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  himmelblau-demo-builder:
+    build: .
+    image: himmelblau-demo
+    mem_limit: "24g"
+    environment:
+      LOG_LEVEL: debug
+      TENANT_DOMAIN: ${TENANT_DOMAIN}
+      TENANT_ID: ${TENANT_ID}
+      HSM_TYPE: ${HSM_TYPE}
+      ENABLE_HELLO: ${ENABLE_HELLO}
+    volumes:
+      - ./build:/workspace:Z
+    entrypoint:
+      - "sh"
+      - "-c"
+      - "exec bash /compose-helper.sh"
