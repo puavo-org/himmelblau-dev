@@ -14,6 +14,7 @@ all: build
 build/himmelblau-demo.qcow2:
 	@mkdir -p build
 	@cp himmelblau.version build/
+	@cp systemd-creds-wrapper.sh build/
 	@set -eu; \
 	COMPOSE_CMD=""; \
 	if command -v "$(DOCKER)" >/dev/null 2>&1; then \

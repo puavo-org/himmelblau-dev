@@ -27,7 +27,7 @@ if ! getent group messagebus >/dev/null 2>&1; then
 fi
 
 # No-op shims for tools that maintainer scripts may try to call on the *host*
-cat > /tmp/noop_mock <<EOF
+cat > /tmp/noop_mock <<'EOF'
 #!/bin/sh
 exit 0
 EOF
@@ -57,6 +57,10 @@ mmdebstrap \
   trixie \
   "$ROOTFS_DIR" \
   http://deb.debian.org/debian/
+
+mv "$ROOTFS_DIR/usr/bin/systemd-creds" "$ROOTFS_DIR/usr/bin/systemd-creds.bin"
+cp "$WORKSPACE_DIR/systemd-creds-wrapper.sh" "$ROOTFS_DIR/usr/bin/systemd-creds"
+chmod +x "$ROOTFS_DIR/usr/bin/systemd-creds"
 
 echo "himmelblau-demo" > "$ROOTFS_DIR/etc/hostname"
 cat > "$ROOTFS_DIR/etc/hosts" <<EOF

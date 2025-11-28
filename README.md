@@ -84,12 +84,3 @@ In order to list of all the available commands and their descriptions, run:
     ```bash
     virt-viewer --connect qemu:///system --wait himmelblau-demo
     ```
-
-# Himmelblau
-
-Although the official *Intune app* provided by Microsoft offers some support for
-Linux clients, the coverage is weaker than on other supported platforms. The
-*Linux client profile* that Microsoft provides for Azure and Intune offers only
-the basic access control.
-
-In order to circumvent the limitations caused by the lack of prop
