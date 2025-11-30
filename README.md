@@ -38,12 +38,15 @@ In order to list of all the available commands and their descriptions, run:
 
     The following variables are used during image build:
 
-    * `TENANT_DOMAIN` – Primary Azure Entra ID domain used for sign-in
+    * `ENTRA_DOMAIN` – Primary Azure Entra ID domain used for sign-in
       (for example `example.onmicrosoft.com`). This is written to the
       `domains` setting in `/etc/himmelblau/himmelblau.conf`.
-    * `TENANT_ID` – Azure Entra ID application (client) ID Himmelblau should
+    * `ENTRA_APP_UUID` – Azure Entra ID application (client) ID Himmelblau should
       use for directory operations and token acquisition. This is written to
       the `app_id` setting in `/etc/himmelblau/himmelblau.conf`.
+    * `ENTRA_GROUP_UUID` – Azure Entra ID group object ID whose members are
+      allowed to log in to the demo VM. This is written to the
+      `pam_allow_groups` setting in `/etc/himmelblau/himmelblau.conf`.
     * `HSM_TYPE` – Key storage mode for Himmelblau (for example
       `soft`, `tpm`, or `tpm_if_possible`).
     * `ENABLE_HELLO` – Controls whether Linux Hello PIN enrollment is enabled
@@ -84,3 +87,30 @@ In order to list of all the available commands and their descriptions, run:
     ```bash
     virt-viewer --connect qemu:///system --wait himmelblau-demo
     ```
+
+# Groups and permissions
+
+Himmelblau requires an app to be created at the [Microsoft Azure
+portal](https://portal.azure.com/) with the following permissions:
+
+1. `GroupMember.Read.All`
+2. `User.Read.All`
+
+If `pam_allow_groups` is not set in `/etc/himmelblau/himmelblau.conf`
+`himmelblaud-tasks` will deny any logging attempts and output the following
+message:
+
+    DEBUG 🐛 [debug]: Number of intersecting groups: 0
+    DEBUG 🐛 [debug]: User has valid token: true
+
+Himmelblau denies login unless Entra ID has a group created for it and
+configured to the `pam_allow_groups` setting. New Entra ID groups can be created
+at the [Microsoft Entra admin center](https://entra.microsoft.com/).
+
+In the `.env` file the following settings can be used to define app and group
+for the build:
+
+1. `ENTRA_APP_UUID`: UUID of the app. This will be used to configure the global
+   `app_id` setting in `/etc/himmelblau/himmelblau.conf`.
+2. `ENTRA_GROUP_UUID`: UUID of the group. This will be used configure the
+   `pam_allowed_groups` setting in `/etc/himmelblau/himmelblau.conf`.

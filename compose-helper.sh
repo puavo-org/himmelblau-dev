@@ -8,7 +8,7 @@ WORKSPACE_DIR="${WORKSPACE_DIR:-/workspace}"
 ROOTFS_DIR="/rootfs"
 OUTPUT_IMG="$WORKSPACE_DIR/himmelblau-demo.qcow2"
 
-REQUIRED_VARS="TENANT_ID TENANT_DOMAIN HSM_TYPE ENABLE_HELLO"
+REQUIRED_VARS="ENTRA_APP_UUID ENTRA_DOMAIN HSM_TYPE ENABLE_HELLO ENTRA_GROUP_UUID"
 for var in $REQUIRED_VARS; do
   if [ -z "${!var:-}" ]; then
     echo "'$var' is not set" >&2
@@ -47,7 +47,6 @@ done
 rm -rf "$ROOTFS_DIR"
 mkdir -p "$ROOTFS_DIR"
 
-# Desktop + GNOME + Xorg + virgl-friendly graphics stack
 PACKAGES="apt-utils,avahi-daemon,bash,ca-certificates,console-setup,curl,dbus,dbus-x11,dmz-cursor-theme,fonts-dejavu,gdm3,gnome-session,gnome-shell,gnome-shell-extensions,gnome-control-center,gnome-terminal,gnome-system-monitor,gnome-keyring,gnome-settings-daemon,gnome-backgrounds,gnome-themes-extra,nautilus,adwaita-icon-theme,mutter,network-manager,network-manager-gnome,xorg,xserver-xorg-core,xserver-xorg,xserver-xorg-video-all,x11-xserver-utils,x11-utils,xwayland,grub-efi-amd64-signed,grub-efi-amd64,shim-signed,iproute2,iputils-ping,jq,krb5-user,less,locales,lsb-release,mesa-utils,mesa-vulkan-drivers,libgl1-mesa-dri,libegl-mesa0,libgles2,openssh-server,qemu-guest-agent,spice-vdagent,sudo,systemd,systemd-sysv,polkitd,pkexec,tzdata,vim,zstd,linux-image-amd64,libtss2-esys-3.0.2-0t64,libtss2-tctildr0t64,libnss-mdns"
 
 mmdebstrap \
@@ -102,7 +101,7 @@ echo "Europe/Helsinki" > "$ROOTFS_DIR/etc/timezone"
 rm -f "$ROOTFS_DIR/etc/localtime"
 ln -s /usr/share/zoneinfo/Europe/Helsinki "$ROOTFS_DIR/etc/localtime"
 
-# Kernel cmdline – keep tty0 *and* serial console
+# Kernel command-line.
 GRUB_DEFAULT="$ROOTFS_DIR/etc/default/grub"
 if [ -f "$GRUB_DEFAULT" ]; then
   sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash console=tty0 console=ttyS0,115200"/' "$GRUB_DEFAULT"
@@ -132,37 +131,34 @@ chroot "$ROOTFS_DIR" sh -c 'dpkg -i /tmp/hb_debs/*.deb'
 
 rm -rf "$ROOTFS_DIR/tmp/hb_debs"
 
-# Basic Himmelblau config
 mkdir -p "$ROOTFS_DIR/etc/himmelblau"
 cat > "$ROOTFS_DIR/etc/himmelblau/himmelblau.conf" <<EOF
 [global]
 debug = true
-domains = ${TENANT_DOMAIN}
-app_id = ${TENANT_ID}
-home_alias = CN
-home_attr = CN
+domains = ${ENTRA_DOMAIN}
+app_id = ${ENTRA_APP_UUID}
+home_attr = UUID
 id_attr_map = name
-pam_allow_groups =
+pam_allow_groups = ${ENTRA_GROUP_UUID}
 use_etc_skel = true
-local_groups = users
 hsm_type = ${HSM_TYPE}
 enable_hello = ${ENABLE_HELLO}
 EOF
 
-# NSS modules
+# Enable NSS modules.
 sed -i '/^passwd:/ s/$/ himmelblau/' "$ROOTFS_DIR/etc/nsswitch.conf"
 sed -i '/^shadow:/ s/$/ himmelblau/' "$ROOTFS_DIR/etc/nsswitch.conf"
 sed -i '/^group:/ s/$/ himmelblau/' "$ROOTFS_DIR/etc/nsswitch.conf"
 
-# Enable Himmelblau services
+# Enable Himmelblau services.
 mkdir -p "$ROOTFS_DIR/etc/systemd/system/multi-user.target.wants"
 ln -sf /lib/systemd/system/himmelblaud.service "$ROOTFS_DIR/etc/systemd/system/multi-user.target.wants/himmelblaud.service"
 ln -sf /lib/systemd/system/himmelblaud-tasks.service "$ROOTFS_DIR/etc/systemd/system/multi-user.target.wants/himmelblaud-tasks.service"
 
-# Enable NetworkManager explicitly (in case maint scripts couldn't)
+# Enable NetworkManager.
 ln -sf /lib/systemd/system/NetworkManager.service "$ROOTFS_DIR/etc/systemd/system/multi-user.target.wants/NetworkManager.service"
 
-# Boot to graphical target with GDM
+# Enable GDM.
 mkdir -p "$ROOTFS_DIR/etc/systemd/system"
 ln -sf /lib/systemd/system/graphical.target "$ROOTFS_DIR/etc/systemd/system/default.target"
 ln -sf /lib/systemd/system/gdm3.service "$ROOTFS_DIR/etc/systemd/system/display-manager.service"
@@ -170,7 +166,7 @@ ln -sf /lib/systemd/system/gdm3.service "$ROOTFS_DIR/etc/systemd/system/display-
 mkdir -p "$ROOTFS_DIR/etc/systemd/system/graphical.target.wants"
 ln -sf /lib/systemd/system/gdm3.service "$ROOTFS_DIR/etc/systemd/system/graphical.target.wants/gdm3.service"
 
-# Figure out kernel/initrd names
+# Resolve kernel and initrd.
 kernel=
 if ls "$ROOTFS_DIR"/boot/vmlinuz-* >/dev/null 2>&1; then
   kernel=$(basename "$(ls "$ROOTFS_DIR"/boot/vmlinuz-* 2>/dev/null | sort | tail -n 1)")
@@ -183,7 +179,7 @@ elif ls "$ROOTFS_DIR"/boot/initrd.img-* >/dev/null 2>&1; then
   initrd=$(basename "$(ls "$ROOTFS_DIR"/boot/initrd.img-* 2>/dev/null | sort | tail -n 1)")
 fi
 
-# Minimal GRUB config – boots directly into our Debian install
+# Configure GRUB.
 if [ -n "${kernel:-}" ] && [ -n "${initrd:-}" ]; then
   mkdir -p "$ROOTFS_DIR/boot/grub"
   cat > "$ROOTFS_DIR/boot/grub/grub.cfg" <<EOF
@@ -198,7 +194,7 @@ menuentry 'Debian Himmelblau Demo' {
 EOF
 fi
 
-# Disk layout: 512M EFI + rest root, with labels
+# Create 512M ESP and fill rest of the space with the rootfs.
 IMG_SIZE="50G"
 EFI_SIZE_MB=512
 
