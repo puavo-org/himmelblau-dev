@@ -6,9 +6,6 @@ FROM debian:12-slim
 RUN set -eu; \
     apt-get update; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      debootstrap \
-      fakechroot \
-      fakeroot \
       ca-certificates \
       curl \
       xz-utils \
