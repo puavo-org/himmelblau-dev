@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT OR Apache-2.0
 # Copyright (c) Opinsys Oy 2025
 
 FROM debian:12-slim
