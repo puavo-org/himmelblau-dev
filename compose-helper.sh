@@ -82,7 +82,7 @@ chown 1000:1000 "$ROOTFS_DIR/home/himmelblau"
 
 # Sudo access
 if grep -q '^sudo:.*:$' "$ROOTFS_DIR/etc/group"; then
-  sed -i '/^sudo:/ s/$/himmelblau/' "$ROOTFS_DIR/etc/group"
+  sed -i '/^sudo:/ s/:$/:himmelblau/' "$ROOTFS_DIR/etc/group"
 else
   sed -i '/^sudo:/ s/$/,himmelblau/' "$ROOTFS_DIR/etc/group"
 fi
