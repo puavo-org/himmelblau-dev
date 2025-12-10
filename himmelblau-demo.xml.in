@@ -56,7 +56,6 @@
     <controller type="pci" model="pcie-root-port" />
     <interface type="user">
       <model type="virtio" />
-      <backend type="passt" />
       <portForward proto="tcp">
         <range start="10022" to="22" />
       </portForward>
