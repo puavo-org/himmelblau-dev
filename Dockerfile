@@ -15,4 +15,5 @@ RUN set -eu; \
 WORKDIR /workspace
 
 COPY compose-helper.sh /compose-helper.sh
-RUN chmod +x /compose-helper.sh
+COPY systemd-creds-wrapper.sh /systemd-creds-wrapper.sh
+RUN chmod +x /compose-helper.sh /systemd-creds-wrapper.sh

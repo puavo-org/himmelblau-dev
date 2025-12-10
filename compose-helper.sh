@@ -57,10 +57,6 @@ mmdebstrap \
   "$ROOTFS_DIR" \
   http://deb.debian.org/debian/
 
-mv "$ROOTFS_DIR/usr/bin/systemd-creds" "$ROOTFS_DIR/usr/bin/systemd-creds.bin"
-cp "$WORKSPACE_DIR/systemd-creds-wrapper.sh" "$ROOTFS_DIR/usr/bin/systemd-creds"
-chmod +x "$ROOTFS_DIR/usr/bin/systemd-creds"
-
 echo "himmelblau-demo" > "$ROOTFS_DIR/etc/hostname"
 cat > "$ROOTFS_DIR/etc/hosts" <<EOF
 127.0.0.1 localhost
@@ -125,9 +121,25 @@ for PKG in $CORE_PACKAGES; do
   curl -fsSL -o "$ROOTFS_DIR/tmp/hb_debs/$file" "$BASE_URL/$file"
 done
 
+SYSTEMD_CREDS_WRAPPED=0
+SYSTEMD_CREDS_PATH="$ROOTFS_DIR/usr/bin/systemd-creds"
+SYSTEMD_CREDS_BACKUP="$ROOTFS_DIR/usr/bin/systemd-creds.bin"
+
+if [ -x "$SYSTEMD_CREDS_PATH" ] && [ ! -e "$SYSTEMD_CREDS_BACKUP" ]; then
+  mv "$SYSTEMD_CREDS_PATH" "$SYSTEMD_CREDS_BACKUP"
+  cp /systemd-creds-wrapper.sh "$SYSTEMD_CREDS_PATH"
+  chmod +x "$SYSTEMD_CREDS_PATH"
+  SYSTEMD_CREDS_WRAPPED=1
+fi
+
 # Install Himmelblau packages inside the guest rootfs so maintainer scripts
 # run in a normal Debian 13 environment.
 chroot "$ROOTFS_DIR" sh -c 'dpkg -i /tmp/hb_debs/*.deb'
+
+if [ "$SYSTEMD_CREDS_WRAPPED" -eq 1 ]; then
+  rm -f "$SYSTEMD_CREDS_PATH"
+  mv "$SYSTEMD_CREDS_BACKUP" "$SYSTEMD_CREDS_PATH"
+fi
 
 rm -rf "$ROOTFS_DIR/tmp/hb_debs"
 
@@ -155,7 +167,25 @@ mkdir -p "$ROOTFS_DIR/etc/systemd/system/multi-user.target.wants"
 ln -sf /lib/systemd/system/himmelblaud.service "$ROOTFS_DIR/etc/systemd/system/multi-user.target.wants/himmelblaud.service"
 ln -sf /lib/systemd/system/himmelblaud-tasks.service "$ROOTFS_DIR/etc/systemd/system/multi-user.target.wants/himmelblaud-tasks.service"
 
+BOOTSTRAP_UNIT_DIR="$ROOTFS_DIR/etc/systemd/system"
+mkdir -p "$BOOTSTRAP_UNIT_DIR"
+cat > "$BOOTSTRAP_UNIT_DIR/systemd-creds-bootstrap.service" <<'EOF'
+[Unit]
+Description=Bootstrap systemd-creds
+ConditionPathExists=!/var/lib/systemd/credential.secret
+After=systemd-tpm2-setup.service
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemd-creds setup
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 # Enable NetworkManager.
+ln -sf ../systemd-creds-bootstrap "$ROOTFS_DIR/etc/systemd/system/multi-user.target.wants/systemd-creds-bootstrap.service"
 ln -sf /lib/systemd/system/NetworkManager.service "$ROOTFS_DIR/etc/systemd/system/multi-user.target.wants/NetworkManager.service"
 
 # Enable GDM.
